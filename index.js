@@ -11,18 +11,20 @@ app.use(express.json());
 
 const DATA_FILE = './data.json';
 
-// ✅ Generate unique ID using timestamp
-const getNextId = () => Date.now();
-
-// ✅ Load data from JSON file
+// ✅ Load existing items from file (if exists)
 let items = [];
-if (fs.existsSync(DATA_FILE)) {
-  try {
-    items = JSON.parse(fs.readFileSync(DATA_FILE, 'utf-8'));
-  } catch (err) {
-    console.error('❌ Error reading data file:', err);
-    items = [];
+let currentId = 1;
+
+try {
+  if (fs.existsSync(DATA_FILE)) {
+    const rawData = fs.readFileSync(DATA_FILE);
+    items = JSON.parse(rawData);
+    // Set currentId based on max existing ID
+    const maxId = items.reduce((max, item) => Math.max(max, item.id), 0);
+    currentId = maxId + 1;
   }
+} catch (err) {
+  console.error('❌ Error reading data file:', err);
 }
 
 // ✅ Save data to JSON file
@@ -51,10 +53,10 @@ app.get('/items/:id', (req, res) => {
   res.json(item);
 });
 
-// ✅ POST: Create a new item
+// ✅ POST: Create a new item with auto-incremented ID
 app.post('/items', (req, res) => {
   const newItem = {
-    id: getNextId(),
+    id: currentId++, // auto-increment
     ...req.body,
   };
 
@@ -91,14 +93,14 @@ app.delete('/items/:id', (req, res) => {
   res.json({ success: true, message: 'Item deleted successfully' });
 });
 
-// ✅ DELETE: Delete ALL items
+// ✅ DELETE: Delete all items
 app.delete('/items', (req, res) => {
   items = [];
   saveData();
   res.json({ success: true, message: 'All items deleted successfully' });
 });
 
-// ✅ Start server
+// ✅ Start the server
 app.listen(PORT, () => {
   console.log(`✅ API is running on http://localhost:${PORT}`);
 });
